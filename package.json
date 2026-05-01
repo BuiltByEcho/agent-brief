@@ -1,0 +1,43 @@
+{
+  "name": "@builtbyecho/agent-brief",
+  "version": "0.1.0",
+  "description": "Generate concise, safety-aware project briefs for coding agents.",
+  "type": "module",
+  "bin": {
+    "agent-brief": "./src/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "smoke": "node src/cli.js . --format markdown --max-file-bytes 3000"
+  },
+  "keywords": [
+    "ai-agent",
+    "agents",
+    "context",
+    "cli",
+    "mcp",
+    "developer-tools",
+    "agentic"
+  ],
+  "author": "BuiltByEcho",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BuiltByEcho/agent-brief.git"
+  },
+  "bugs": {
+    "url": "https://github.com/BuiltByEcho/agent-brief/issues"
+  },
+  "homepage": "https://github.com/BuiltByEcho/agent-brief#readme",
+  "engines": {
+    "node": ">=20"
+  }
+}
