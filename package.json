@@ -1,10 +1,10 @@
 {
-  "name": "@builtbyecho/agent-brief",
+  "name": "agent-brief",
   "version": "0.1.0",
   "description": "Generate concise, safety-aware project briefs for coding agents.",
   "type": "module",
   "bin": {
-    "agent-brief": "./src/cli.js"
+    "agent-brief": "src/cli.js"
   },
   "exports": {
     ".": "./src/index.js"

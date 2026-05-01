@@ -7,7 +7,7 @@ Agents waste a surprising amount of time rediscovering the same basics: What sta
 `agent-brief` turns a repo into a short briefing an agent can read before it starts changing code.
 
 ```bash
-npx @builtbyecho/agent-brief
+npx agent-brief
 ```
 
 ## What it does
@@ -21,14 +21,14 @@ npx @builtbyecho/agent-brief
 ## Install
 
 ```bash
-npm install -g @builtbyecho/agent-brief
+npm install -g agent-brief
 agent-brief /path/to/repo
 ```
 
 Or run without installing:
 
 ```bash
-npx @builtbyecho/agent-brief /path/to/repo
+npx agent-brief /path/to/repo
 ```
 
 ## Usage
@@ -61,7 +61,7 @@ This is intentionally zero-dependency and boring. It should be safe to run in al
 ## Library API
 
 ```js
-import { generateBrief, formatMarkdown } from '@builtbyecho/agent-brief';
+import { generateBrief, formatMarkdown } from 'agent-brief';
 
 const brief = generateBrief(process.cwd());
 console.log(formatMarkdown(brief));
