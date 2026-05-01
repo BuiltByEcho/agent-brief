@@ -1,5 +1,5 @@
 {
-  "name": "agent-brief",
+  "name": "repo-agent-brief",
   "version": "0.1.0",
   "description": "Generate concise, safety-aware project briefs for coding agents.",
   "type": "module",
