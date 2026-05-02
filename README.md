@@ -15,6 +15,7 @@ npx repo-agent-brief
 - Finds high-signal files: `AGENTS.md`, `CLAUDE.md`, `README.md`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.
 - Infers stack and common commands.
 - Builds a compact repo map.
+- Optionally summarizes the current git diff so agents can start from “what changed?” instead of rereading the whole repo.
 - Scans context files for obvious secrets and risky operational instructions.
 - Emits Markdown for humans/agents or JSON for automation.
 
@@ -42,6 +43,7 @@ Options:
 - `--format markdown|json` / `-f` — output format. Default: `markdown`.
 - `--max-file-bytes N` — max bytes to read per context file. Default: `12000`.
 - `--no-snippets` — omit source snippets.
+- `--diff [ref]` — include changed files, insertions/deletions, and high-impact path warnings versus a git ref. Defaults to `HEAD` when no ref is provided.
 - `--fail-on-high-risk` — exit `2` if high-severity risk patterns are found.
 
 Examples:
@@ -49,8 +51,19 @@ Examples:
 ```bash
 agent-brief . > AGENT_BRIEF.md
 agent-brief ~/dev/my-app --format json
+agent-brief . --diff origin/main
 agent-brief . --fail-on-high-risk
 ```
+
+## Diff-aware handoffs
+
+When you are handing an in-progress branch to an agent, run:
+
+```bash
+agent-brief . --diff origin/main > AGENT_HANDOFF.md
+```
+
+The brief adds a `Git diff` section with changed paths, line counts, and warnings for high-impact files such as GitHub Actions workflows, deploy scripts, migrations, Docker Compose files, and lockfiles. This keeps the first agent turn grounded in the actual patch instead of a vague repo overview.
 
 ## Why this exists
 
@@ -63,7 +76,7 @@ This is intentionally zero-dependency and boring. It should be safe to run in al
 ```js
 import { generateBrief, formatMarkdown } from 'repo-agent-brief';
 
-const brief = generateBrief(process.cwd());
+const brief = generateBrief(process.cwd(), { diffRef: 'origin/main' });
 console.log(formatMarkdown(brief));
 ```
 

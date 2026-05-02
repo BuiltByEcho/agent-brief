@@ -40,6 +40,7 @@ export function generateBrief(root = process.cwd(), options = {}) {
   const tree = collectTree(absRoot, opts.maxTreeEntries);
   const packageInfo = readPackage(absRoot);
   const git = readGit(absRoot);
+  const diff = opts.diffRef ? collectDiff(absRoot, opts.diffRef) : null;
   const risks = scanRisks(absRoot, context.files);
   const commands = inferCommands(absRoot, packageInfo);
   const stack = inferStack(absRoot, packageInfo);
@@ -51,6 +52,7 @@ export function generateBrief(root = process.cwd(), options = {}) {
     root: absRoot,
     score,
     git,
+    diff,
     stack,
     commands,
     contextFiles: context.files,
@@ -80,6 +82,25 @@ export function formatMarkdown(brief) {
     lines.push('- No obvious build/test/lint commands found.');
   }
   lines.push('');
+
+  if (brief.diff) {
+    lines.push(`## Git diff vs ${brief.diff.ref}`);
+    if (brief.diff.available) {
+      lines.push(`- ${brief.diff.files.length} changed file(s), +${brief.diff.insertions} -${brief.diff.deletions}`);
+      if (brief.diff.files.length) {
+        for (const file of brief.diff.files) {
+          lines.push(`- ${file.status} ${file.path}${file.additions || file.deletions ? ` (+${file.additions}/-${file.deletions})` : ''}${file.risky ? ' ⚠️' : ''}`);
+        }
+      }
+      if (brief.diff.riskNotes.length) {
+        lines.push('');
+        lines.push(...brief.diff.riskNotes.map(note => `- ⚠️ ${note}`));
+      }
+    } else {
+      lines.push(`- Diff unavailable: ${brief.diff.error}`);
+    }
+    lines.push('');
+  }
 
   lines.push('## Agent context files');
   if (brief.contextFiles.length) {
@@ -178,6 +199,86 @@ function readGit(root) {
     git.status = status ? `${status.split('\n').length} changed file(s)` : 'clean';
   } catch {}
   return git;
+}
+
+function collectDiff(root, ref) {
+  const diff = { ref, available: false, files: [], insertions: 0, deletions: 0, riskNotes: [], error: '' };
+  try {
+    const numstat = execFileSync('git', ['-C', root, 'diff', '--numstat', ref, '--'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    const nameStatus = execFileSync('git', ['-C', root, 'diff', '--name-status', ref, '--'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    const status = execFileSync('git', ['-C', root, 'status', '--porcelain'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+    diff.available = true;
+    const byPath = new Map();
+    for (const line of numstat ? numstat.split('\n') : []) {
+      const parts = line.split('\t');
+      if (parts.length >= 3 && /^(?:\d+|-)$/.test(parts[0]) && /^(?:\d+|-)$/.test(parts[1])) {
+        const additions = parts[0] === '-' ? 0 : Number(parts[0]);
+        const deletions = parts[1] === '-' ? 0 : Number(parts[1]);
+        const path = parts.slice(2).join('\t');
+        const entry = byPath.get(path) || { path, status: 'M', additions: 0, deletions: 0, risky: false };
+        entry.additions += additions;
+        entry.deletions += deletions;
+        byPath.set(path, entry);
+        diff.insertions += additions;
+        diff.deletions += deletions;
+      }
+    }
+    for (const line of nameStatus ? nameStatus.split('\n') : []) {
+      const parts = line.split('\t');
+      if (parts.length >= 2 && /^[A-Z]/.test(parts[0])) {
+        const status = parts[0];
+        const path = parts[parts.length - 1];
+        const entry = byPath.get(path) || { path, status, additions: 0, deletions: 0, risky: false };
+        entry.status = status;
+        byPath.set(path, entry);
+      }
+    }
+    for (const line of status ? status.split('\n') : []) {
+      if (!line.startsWith('?? ')) continue;
+      const path = line.slice(3).trim();
+      for (const filePath of expandUntracked(root, path)) {
+        if (!byPath.has(filePath)) byPath.set(filePath, { path: filePath, status: '??', additions: 0, deletions: 0, risky: false });
+      }
+    }
+    diff.files = [...byPath.values()].sort((a, b) => a.path.localeCompare(b.path));
+    for (const file of diff.files) {
+      file.risky = isRiskyChangedPath(file.path);
+      if (file.risky) diff.riskNotes.push(`${file.path} is a high-impact path; inspect carefully before handing changes to an agent.`);
+    }
+  } catch (error) {
+    diff.error = error.message;
+  }
+  return diff;
+}
+
+function expandUntracked(root, path) {
+  const fullPath = join(root, path);
+  try {
+    const stat = statSync(fullPath);
+    if (!stat.isDirectory()) return [path];
+    const out = [];
+    walkUntracked(fullPath, path, out);
+    return out;
+  } catch {
+    return [path];
+  }
+}
+
+function walkUntracked(base, prefix, out) {
+  let entries = [];
+  try { entries = readdirSync(base, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    if (DEFAULT_IGNORES.has(entry.name)) continue;
+    const rel = `${prefix.replace(/\/$/, '')}/${entry.name}`;
+    if (entry.isDirectory()) walkUntracked(join(base, entry.name), rel, out);
+    else out.push(rel);
+  }
+}
+
+function isRiskyChangedPath(path) {
+  return /(^|\/)(\.env|\.npmrc|\.pypirc|Dockerfile|docker-compose\.ya?ml|compose\.ya?ml|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i.test(path)
+    || /(^|\/)\.github\/workflows\//i.test(path)
+    || /(^|\/)(migrations?|supabase|terraform|infra|deploy|scripts?)\//i.test(path);
 }
 
 function inferCommands(root, pkg) {
