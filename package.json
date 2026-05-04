@@ -1,6 +1,6 @@
 {
   "name": "repo-agent-brief",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Generate concise, safety-aware project briefs for coding agents.",
   "type": "module",
   "bin": {
@@ -12,7 +12,8 @@
   "files": [
     "src",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "skills/"
   ],
   "scripts": {
     "test": "node --test",

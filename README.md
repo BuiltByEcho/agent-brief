@@ -87,3 +87,7 @@ This is not a full secret scanner. It catches common token/private-key/secret-as
 ## License
 
 MIT
+
+## Agent Skill
+
+This package includes an OpenClaw/Claude-style skill at `skills/repo-agent-brief` that teaches agents to run repo preflight and diff-aware handoff briefs before editing or reviewing code.
