@@ -44,6 +44,7 @@ export function generateBrief(root = process.cwd(), options = {}) {
   const risks = scanRisks(absRoot, context.files);
   const commands = inferCommands(absRoot, packageInfo);
   const stack = inferStack(absRoot, packageInfo);
+  const verificationPlan = inferVerificationPlan({ commands, diff, risks });
   const score = scoreRepo({ context, commands, risks });
 
   return {
@@ -55,6 +56,7 @@ export function generateBrief(root = process.cwd(), options = {}) {
     diff,
     stack,
     commands,
+    verificationPlan,
     contextFiles: context.files,
     tree,
     risks,
@@ -80,6 +82,17 @@ export function formatMarkdown(brief) {
     for (const cmd of brief.commands) lines.push(`- ${cmd.name}: \`${cmd.command}\`${cmd.source ? ` (${cmd.source})` : ''}`);
   } else {
     lines.push('- No obvious build/test/lint commands found.');
+  }
+  lines.push('');
+
+  lines.push('## Suggested verification plan');
+  if (brief.verificationPlan.length) {
+    for (const step of brief.verificationPlan) {
+      const command = step.command ? ` — \`${step.command}\`` : '';
+      lines.push(`- [${step.priority}] ${step.reason}${command}`);
+    }
+  } else {
+    lines.push('- No automatic verification plan could be inferred. Add test/lint/build scripts for better agent handoffs.');
   }
   lines.push('');
 
@@ -293,6 +306,40 @@ function inferCommands(root, pkg) {
   if (existsSync(join(root, 'Cargo.toml'))) commands.push({ name: 'rust tests', command: 'cargo test', source: 'Cargo.toml' });
   if (existsSync(join(root, 'go.mod'))) commands.push({ name: 'go tests', command: 'go test ./...', source: 'go.mod' });
   return dedupe(commands, c => c.command);
+}
+
+function inferVerificationPlan({ commands, diff, risks }) {
+  const plan = [];
+  const byName = new Map(commands.map(command => [command.name, command]));
+  const add = (priority, reason, command) => {
+    if (command && plan.some(step => step.command === command.command)) return;
+    plan.push({ priority, reason, command: command?.command || '' });
+  };
+
+  if (risks.some(r => r.severity === 'high')) {
+    add('must', 'Manually inspect high-severity risk matches before sharing output or committing changes');
+  }
+
+  const changedPaths = diff?.available ? diff.files.map(file => file.path) : [];
+  const onlyDocsChanged = changedPaths.length > 0 && changedPaths.every(path => /(^|\/)(README|CHANGELOG|AGENTS|CLAUDE|GEMINI)\.md$|\.md$/i.test(path));
+  const changedPackageOrLock = changedPaths.some(path => /(^|\/)(package\.json|package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i.test(path));
+  const changedSource = changedPaths.some(path => /(^|\/)(src|lib|app|pages|components|test|tests|spec)\//i.test(path) || /\.(?:[cm]?[jt]sx?|tsx?|py|rs|go)$/i.test(path));
+  const changedCiOrDeploy = changedPaths.some(isRiskyChangedPath);
+
+  if (changedCiOrDeploy) add('must', 'Review high-impact changed paths such as CI, deploy, infra, lockfiles, or migrations');
+  if (changedPackageOrLock) add('should', 'Inspect dependency or package metadata changes before publishing/merging');
+
+  if (byName.has('typecheck')) add(changedSource ? 'must' : 'should', 'Run type checks for changed code paths', byName.get('typecheck'));
+  if (byName.has('lint')) add(changedSource ? 'should' : 'optional', 'Run lint for fast static feedback', byName.get('lint'));
+  if (byName.has('test')) add(changedSource || !onlyDocsChanged ? 'must' : 'optional', 'Run the primary test suite before final handoff', byName.get('test'));
+  if (byName.has('build')) add(changedSource || changedPackageOrLock ? 'should' : 'optional', 'Run a production build if behavior or packaging changed', byName.get('build'));
+
+  if (!commands.some(c => ['test', 'lint', 'typecheck', 'build'].includes(c.name))) {
+    add('should', 'No test/lint/build commands were detected; do a focused manual smoke check and document the gap');
+  }
+
+  if (!diff) add('optional', 'Run with --diff origin/main or --diff HEAD to tailor this plan to the current patch');
+  return plan;
 }
 
 function inferStack(root, pkg) {

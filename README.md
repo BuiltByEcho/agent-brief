@@ -15,6 +15,7 @@ npx repo-agent-brief
 - Finds high-signal files: `AGENTS.md`, `CLAUDE.md`, `README.md`, `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.
 - Infers stack and common commands.
 - Builds a compact repo map.
+- Suggests a prioritized verification plan (`must` / `should` / `optional`) from detected scripts, risks, and changed files.
 - Optionally summarizes the current git diff so agents can start from “what changed?” instead of rereading the whole repo.
 - Scans context files for obvious secrets and risky operational instructions.
 - Emits Markdown for humans/agents or JSON for automation.
@@ -64,6 +65,19 @@ agent-brief . --diff origin/main > AGENT_HANDOFF.md
 ```
 
 The brief adds a `Git diff` section with changed paths, line counts, and warnings for high-impact files such as GitHub Actions workflows, deploy scripts, migrations, Docker Compose files, and lockfiles. This keeps the first agent turn grounded in the actual patch instead of a vague repo overview.
+
+## Verification plans
+
+Every brief now includes a `Suggested verification plan` section. It turns discovered scripts plus patch context into a short checklist an agent can follow before finalizing:
+
+```markdown
+## Suggested verification plan
+- [must] Run type checks for changed code paths — `npm run typecheck`
+- [should] Run lint for fast static feedback — `npm run lint`
+- [must] Run the primary test suite before final handoff — `npm run test`
+```
+
+If you pass `--diff`, the plan gets sharper: docs-only changes downgrade expensive checks, source changes promote tests/typechecks, and CI/deploy/infra/lockfile changes add a manual high-impact-path review. If no test/lint/build commands are found, the plan calls that gap out plainly so the agent does not pretend verification happened.
 
 ## Why this exists
 

@@ -19,9 +19,10 @@ test('generates a useful brief for a node repo', () => {
   assert.ok(brief.stack.includes('Node.js package'));
   assert.ok(brief.stack.includes('React'));
   assert.ok(brief.commands.some(c => c.command === 'npm run test'));
+  assert.ok(brief.verificationPlan.some(step => step.command === 'npm run test'));
   assert.ok(brief.contextFiles.some(f => f.path === 'AGENTS.md'));
   assert.equal(brief.risks.length, 0);
-  assert.match(formatMarkdown(brief), /Agent Brief/);
+  assert.match(formatMarkdown(brief), /Suggested verification plan/);
   assert.doesNotThrow(() => JSON.parse(formatJson(brief)));
 });
 
@@ -49,5 +50,6 @@ test('includes git diff handoff context when requested', () => {
   assert.equal(brief.diff.available, true);
   assert.ok(brief.diff.files.some(f => f.path === 'README.md'));
   assert.ok(brief.diff.files.some(f => f.path === '.github/workflows/ci.yml' && f.risky));
+  assert.ok(brief.verificationPlan.some(step => step.reason.includes('high-impact changed paths')));
   assert.match(formatMarkdown(brief), /Git diff vs HEAD/);
 });
