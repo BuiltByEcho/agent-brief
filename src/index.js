@@ -1,5 +1,5 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join, relative } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { basename, join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const DEFAULT_IGNORES = new Set([
@@ -156,6 +156,61 @@ export function formatMarkdown(brief) {
 
 export function formatJson(brief) {
   return JSON.stringify(brief, null, 2);
+}
+
+export function formatVerificationMarkdown(brief) {
+  const lines = [];
+  lines.push(`# Verification Plan: ${brief.project}`);
+  lines.push('');
+  lines.push(`Generated: ${brief.generatedAt}`);
+  if (brief.git.branch || brief.git.status) lines.push(`Git: ${brief.git.branch || 'unknown'}${brief.git.status ? ` - ${brief.git.status}` : ''}`);
+  lines.push('');
+
+  lines.push('## Checklist');
+  if (brief.verificationPlan.length) {
+    for (const step of brief.verificationPlan) {
+      const command = step.command ? `\n  - Command: \`${step.command}\`` : '';
+      lines.push(`- [ ] [${step.priority}] ${step.reason}${command}`);
+    }
+  } else {
+    lines.push('- [ ] Do a focused manual smoke check and document what could not be verified.');
+  }
+  lines.push('');
+
+  if (brief.diff?.available) {
+    lines.push(`## Changed Files vs ${brief.diff.ref}`);
+    if (brief.diff.files.length) {
+      for (const file of brief.diff.files) {
+        lines.push(`- ${file.status} ${file.path}${file.risky ? ' (high-impact)' : ''}`);
+      }
+    } else {
+      lines.push('- No changed files detected.');
+    }
+    lines.push('');
+  }
+
+  lines.push('## Risk Notes');
+  if (brief.risks.length) {
+    for (const risk of brief.risks) lines.push(`- [${risk.severity}] ${risk.path}: ${risk.message}`);
+  } else {
+    lines.push('- No obvious secret/risky-instruction patterns found in scanned context files.');
+  }
+  lines.push('');
+  return lines.join('\n');
+}
+
+export function writeBundle(root, brief, bundleDir = '.agent-brief') {
+  const outDir = resolve(root, bundleDir);
+  mkdirSync(outDir, { recursive: true });
+  const files = {
+    markdown: join(outDir, 'brief.md'),
+    json: join(outDir, 'brief.json'),
+    verification: join(outDir, 'verification.md')
+  };
+  writeFileSync(files.markdown, formatMarkdown(brief));
+  writeFileSync(files.json, `${formatJson(brief)}\n`);
+  writeFileSync(files.verification, formatVerificationMarkdown(brief));
+  return files;
 }
 
 function collectContext(root, opts) {

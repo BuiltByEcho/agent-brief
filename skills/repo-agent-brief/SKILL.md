@@ -29,6 +29,14 @@ For machine-readable automation:
 npx repo-agent-brief . --format json > agent-brief.json
 ```
 
+For durable handoffs:
+
+```bash
+npx repo-agent-brief . --diff HEAD --bundle
+sed -n '1,220p' .agent-brief/brief.md
+sed -n '1,160p' .agent-brief/verification.md
+```
+
 ## When to use
 
 - First pass in an unfamiliar repo.
@@ -48,6 +56,7 @@ npx repo-agent-brief . --format json > agent-brief.json
 ```bash
 npx repo-agent-brief .
 npx repo-agent-brief . --diff HEAD
+npx repo-agent-brief . --diff HEAD --bundle
 npx repo-agent-brief . --diff origin/main --fail-on-high-risk
 npx repo-agent-brief . --no-snippets
 ```

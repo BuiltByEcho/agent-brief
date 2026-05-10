@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { generateBrief, formatMarkdown, formatJson } from '../src/index.js';
+import { generateBrief, formatMarkdown, formatJson, formatVerificationMarkdown, writeBundle } from '../src/index.js';
 
 test('generates a useful brief for a node repo', () => {
   const dir = mkdtempSync(join(tmpdir(), 'agent-brief-'));
@@ -52,4 +52,21 @@ test('includes git diff handoff context when requested', () => {
   assert.ok(brief.diff.files.some(f => f.path === '.github/workflows/ci.yml' && f.risky));
   assert.ok(brief.verificationPlan.some(step => step.reason.includes('high-impact changed paths')));
   assert.match(formatMarkdown(brief), /Git diff vs HEAD/);
+});
+
+test('writes a durable handoff bundle', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-brief-bundle-'));
+  writeFileSync(join(dir, 'AGENTS.md'), '# Rules\n- Run tests before final answer\n');
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ scripts: { test: 'node --test' } }, null, 2));
+
+  const brief = generateBrief(dir, { includeSnippets: false });
+  const files = writeBundle(dir, brief);
+
+  assert.equal(existsSync(files.markdown), true);
+  assert.equal(existsSync(files.json), true);
+  assert.equal(existsSync(files.verification), true);
+  assert.match(readFileSync(files.markdown, 'utf8'), /Agent Brief:/);
+  assert.match(readFileSync(files.verification, 'utf8'), /Verification Plan:/);
+  assert.match(formatVerificationMarkdown(brief), /npm run test/);
+  assert.doesNotThrow(() => JSON.parse(readFileSync(files.json, 'utf8')));
 });

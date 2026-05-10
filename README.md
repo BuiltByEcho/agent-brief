@@ -45,6 +45,7 @@ Options:
 - `--max-file-bytes N` — max bytes to read per context file. Default: `12000`.
 - `--no-snippets` — omit source snippets.
 - `--diff [ref]` — include changed files, insertions/deletions, and high-impact path warnings versus a git ref. Defaults to `HEAD` when no ref is provided.
+- `--bundle [dir]` — write a durable handoff bundle with `brief.md`, `brief.json`, and `verification.md`. Default: `.agent-brief`.
 - `--fail-on-high-risk` — exit `2` if high-severity risk patterns are found.
 
 Examples:
@@ -53,6 +54,7 @@ Examples:
 agent-brief . > AGENT_BRIEF.md
 agent-brief ~/dev/my-app --format json
 agent-brief . --diff origin/main
+agent-brief . --diff HEAD --bundle
 agent-brief . --fail-on-high-risk
 ```
 
@@ -78,6 +80,26 @@ Every brief now includes a `Suggested verification plan` section. It turns disco
 ```
 
 If you pass `--diff`, the plan gets sharper: docs-only changes downgrade expensive checks, source changes promote tests/typechecks, and CI/deploy/infra/lockfile changes add a manual high-impact-path review. If no test/lint/build commands are found, the plan calls that gap out plainly so the agent does not pretend verification happened.
+
+## Handoff bundles
+
+For longer-running work, use `--bundle` to leave a stable artifact another agent or human can inspect later:
+
+```bash
+agent-brief . --diff HEAD --bundle
+```
+
+This writes:
+
+- `.agent-brief/brief.md` — the full human-readable project brief.
+- `.agent-brief/brief.json` — the same data for automation.
+- `.agent-brief/verification.md` — a focused checklist of the exact checks the next agent should run or document.
+
+Use a custom directory when you want to attach the bundle to a ticket, run log, or CI artifact:
+
+```bash
+agent-brief . --diff origin/main --bundle artifacts/agent-brief
+```
 
 ## Why this exists
 
