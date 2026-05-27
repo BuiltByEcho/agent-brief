@@ -35,7 +35,7 @@ Options:
   -h, --help                   Show help
 
 Examples:
-  npx repo-agent-brief
+  npx @builtbyecho/repo-agent-brief
   agent-brief ~/dev/my-app --format json
   agent-brief . --diff origin/main
   agent-brief . --diff HEAD --bundle

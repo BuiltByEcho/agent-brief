@@ -7,7 +7,7 @@ Agents waste a surprising amount of time rediscovering the same basics: What sta
 `agent-brief` turns a repo into a short briefing an agent can read before it starts changing code.
 
 ```bash
-npx repo-agent-brief
+npx @builtbyecho/repo-agent-brief
 ```
 
 ## What it does
@@ -23,14 +23,14 @@ npx repo-agent-brief
 ## Install
 
 ```bash
-npm install -g repo-agent-brief
+npm install -g @builtbyecho/repo-agent-brief
 agent-brief /path/to/repo
 ```
 
 Or run without installing:
 
 ```bash
-npx repo-agent-brief /path/to/repo
+npx @builtbyecho/repo-agent-brief /path/to/repo
 ```
 
 ## Usage
@@ -110,7 +110,7 @@ This is intentionally zero-dependency and boring. It should be safe to run in al
 ## Library API
 
 ```js
-import { generateBrief, formatMarkdown } from 'repo-agent-brief';
+import { generateBrief, formatMarkdown } from '@builtbyecho/repo-agent-brief';
 
 const brief = generateBrief(process.cwd(), { diffRef: 'origin/main' });
 console.log(formatMarkdown(brief));
@@ -127,3 +127,7 @@ MIT
 ## Agent Skill
 
 This package includes an OpenClaw/Claude-style skill at `skills/repo-agent-brief` that teaches agents to run repo preflight and diff-aware handoff briefs before editing or reviewing code.
+
+## Package Names
+
+`@builtbyecho/repo-agent-brief` is the canonical package. The older unscoped `repo-agent-brief` package remains on npm as a compatibility package for historical installs.
