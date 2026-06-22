@@ -131,3 +131,7 @@ This package includes an OpenClaw/Claude-style skill at `skills/repo-agent-brief
 ## Package Names
 
 `@builtbyecho/repo-agent-brief` is the canonical package. The older unscoped `repo-agent-brief` package remains on npm as a compatibility package for historical installs.
+
+## Release Automation
+
+This package is published from GitHub Actions using npm Trusted Publishing with provenance. Releases are built on GitHub-hosted runners and no long-lived npm publish token is required.
