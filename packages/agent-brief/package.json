@@ -25,7 +25,9 @@
     "cli",
     "mcp",
     "developer-tools",
-    "agentic"
+    "agentic",
+    "builtbyecho",
+    "agent-tooling"
   ],
   "author": "BuiltByEcho",
   "license": "MIT",

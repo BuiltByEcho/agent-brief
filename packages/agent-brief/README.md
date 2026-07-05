@@ -18,6 +18,20 @@ npx @builtbyecho/agent-brief
 - Scans context files for obvious secrets and risky operational instructions.
 - Emits Markdown for humans/agents or JSON for automation.
 
+## Fits in the Echo agent toolchain
+
+Use `agent-brief` at the start of a repo task, before an agent spends tokens or edits files. It pairs well with `@builtbyecho/git-digest` for live git state and `agent-runlog` for verified command receipts after the work is done.
+
+For public build logs, this gives the clean "what repo am I in and what should I know first?" layer.
+
+## Refresh smoke
+
+```bash
+npm test
+npm run smoke
+npm pack --dry-run --json
+```
+
 ## Install
 
 ```bash
