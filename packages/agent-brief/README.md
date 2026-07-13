@@ -57,6 +57,7 @@ Options:
 - `--max-file-bytes N` — max bytes to read per context file. Default: `12000`.
 - `--no-snippets` — omit source snippets.
 - `--fail-on-high-risk` — exit `2` if high-severity risk patterns are found.
+- `--min-score N` — exit `3` if repository readiness is below `N` (0–100), making the brief usable as a CI quality gate.
 
 Examples:
 
@@ -64,6 +65,7 @@ Examples:
 agent-brief . > AGENT_BRIEF.md
 agent-brief ~/dev/my-app --format json
 agent-brief . --fail-on-high-risk
+agent-brief . --format json --min-score 70
 ```
 
 ## Why this exists
